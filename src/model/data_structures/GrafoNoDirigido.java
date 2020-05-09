@@ -96,6 +96,8 @@ public class GrafoNoDirigido<Key extends Comparable<Key>, Value>
 	private int nArcos;
 
 	private SeparateChainingHash<Key, Vertice<Key, Value>> vertices;
+	
+	private Queue<Arco<Key>> arcos;
 
 
 	public GrafoNoDirigido()
@@ -104,6 +106,7 @@ public class GrafoNoDirigido<Key extends Comparable<Key>, Value>
 		nArcos = 0;
 
 		vertices = new SeparateChainingHash<Key, Vertice<Key, Value>>(1000);
+		arcos = new Queue<Arco<Key>>();
 
 	}
 
@@ -117,6 +120,10 @@ public class GrafoNoDirigido<Key extends Comparable<Key>, Value>
 
 	}
 
+	public SeparateChainingHash<Key, Vertice<Key, Value>> darVertices()
+	{
+		return vertices;
+	}
 	public int V()
 	{
 		return nVertices;
@@ -139,6 +146,7 @@ public class GrafoNoDirigido<Key extends Comparable<Key>, Value>
 
 			inicio.agregarArco(arco);
 			fin.agregarArco(arco);
+			arcos.enqueue(arco);
 			nArcos++;
 		}
 	}

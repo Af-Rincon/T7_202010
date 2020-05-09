@@ -234,7 +234,7 @@ public class Modelo {
 
 	}
 
-	
+
 	public void leerJSON(String pRutaArchivo) 
 	{
 		JsonReader reader;
@@ -261,7 +261,7 @@ public class Modelo {
 				{
 					int idVertexFin = a.getAsJsonObject().get("IDVERTEX_FIN").getAsInt();
 					double costo = a.getAsJsonObject().get("COSTO").getAsDouble();
-					
+
 					grafoArchivo.addEdge(objectID, idVertexFin, costo);
 				}
 			}
@@ -275,11 +275,21 @@ public class Modelo {
 
 	}
 
+
 	// -----------------------------------------------------------------
 	// Métodos básicos
 	// -----------------------------------------------------------------
 
 
+	public Queue<EstacionPolicia> darEstaciones()
+	{
+		return estaciones;
+	}
+
+	public GrafoNoDirigido<Integer, LatitudYLongitud> darGrafo()
+	{
+		return grafo;
+	}
 	public Comparendo[] copiarArreglo(Queue<Comparendo> arreglo)
 	{
 		Comparendo[] comparendos = new Comparendo[arreglo.darTamano()];

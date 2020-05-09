@@ -3,6 +3,7 @@ package controller;
 import java.util.Scanner;
 
 import model.logic.Comparendo;
+import model.logic.Mapa;
 import model.logic.Modelo;
 import view.View;
 
@@ -130,10 +131,16 @@ public class Controller {
 				break;
 
 			case 5:
+				
+				Mapa map  = new Mapa(modelo, false);
+				map.iniciarFrame();
+				
 				break;
 
 			case 6:
-
+				
+				Mapa mapaEstaciones  = new Mapa(modelo, true);
+				mapaEstaciones.iniciarFrame();
 				break; 
 
 			case 7:
