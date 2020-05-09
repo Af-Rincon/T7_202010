@@ -83,6 +83,11 @@ public class GrafoNoDirigido<Key extends Comparable<Key>, Value>
 			return marca;
 		}
 
+		public void marcar()
+		{
+			marca = true;
+		}
+		
 		public void desmarcar()
 		{
 			marca = false;
@@ -266,7 +271,7 @@ public class GrafoNoDirigido<Key extends Comparable<Key>, Value>
 
 	public void dfs(Key s)
 	{
-
+		vertices.get(s);
 	}
 
 	public int cc()
