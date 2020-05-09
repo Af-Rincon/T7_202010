@@ -18,10 +18,10 @@ public class testHashSeparateChaining
 	public void setUp()
 	{
 		hashSC = new SeparateChainingHash<String, String>(7);
-		hashSC.putInSet("1", "H");
-		hashSC.putInSet("2", "O");
-		hashSC.putInSet("3", "L");
-		hashSC.putInSet("4", "A");
+		hashSC.put("1", "H");
+		hashSC.put("2", "O");
+		hashSC.put("3", "L");
+		hashSC.put("4", "A");
 	}
 	
 	@Test
@@ -50,28 +50,28 @@ public class testHashSeparateChaining
 	}
 	
 	@Test
-	public void testPutInSet()
+	public void testPut()
 	{
 
-		hashSC.putInSet("1", "!");
-		assertEquals("El total de valores no es el esperado", hashSC.getSet("1").darTamano(), 2);
+		hashSC.put("1", "!");
+		assertEquals("El total de valores no es el esperado", hashSC.get("1"), "!");
 		
-		hashSC.putInSet("5", "C");
+		hashSC.put("5", "C");
 		assertTrue(hashSC.contains("5"));
-		assertEquals("El total de valores no es el esperado", hashSC.getSet("5").darTamano(), 1);
+		assertEquals("El total de valores no es el esperado", hashSC.get("5"), "C");
 	}
 	
 	@Test
-	public void testGetSet()
+	public void testGet()
 	{
-		assertEquals("El total de valores no es el esperado", hashSC.getSet("1").darTamano(), 1);
-		assertNull("El total de valores no es el esperado", hashSC.getSet("8"));
+		assertEquals("El total de valores no es el esperado", hashSC.get("1"), "H");
+		assertNull("El total de valores no es el esperado", hashSC.get("8"));
 	}
 	
 	@Test
 	public void testDeleteSet()
 	{
-		Iterator<String> bla = hashSC.deleteSet("1");
+		hashSC.delete("1");
 		assertTrue(!hashSC.contains("1"));
 	}
 	

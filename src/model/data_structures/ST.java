@@ -9,10 +9,10 @@ public class ST<Key,Value> {
 	    
 	    private class Node {
 	        private Key key;
-	        private Queue<Value> val;
+	        private Value val;
 	        private Node next;
 
-	        public Node(Key key, Queue<Value> val, Node next)  {
+	        public Node(Key key, Value val, Node next)  {
 	            this.key  = key;
 	            this.val  = val;
 	            this.next = next;
@@ -27,7 +27,7 @@ public class ST<Key,Value> {
 	        return get(key) != null;
 	    }
 	    
-	    public Queue<Value> get(Key key) {
+	    public Value get(Key key) {
 	        for (Node x = first; x != null; x = x.next) {
 	            if (key.equals(x.key))
 	                return x.val;
@@ -35,7 +35,7 @@ public class ST<Key,Value> {
 	        return null;
 	    }
 	    
-	    public void put(Key key, Queue<Value> val) {
+	    public void put(Key key, Value val) {
 	        if (val == null) {
 	            delete(key);
 	            return;
