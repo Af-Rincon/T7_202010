@@ -38,6 +38,8 @@ public class GrafoNoDirigido<Key extends Comparable<Key>, Value>
 
 		private Value valorVertex;
 
+		private boolean marca; 
+
 		private Queue<Arco<Key>> adyacentes;
 
 		public Vertice(Key id, Value valor)
@@ -60,6 +62,16 @@ public class GrafoNoDirigido<Key extends Comparable<Key>, Value>
 		public Queue<Arco<Key>> darAdyacentes()
 		{
 			return adyacentes;
+		}
+
+		public boolean darMarked()
+		{
+			return marca;
+		}
+
+		public void desmarcar()
+		{
+			marca = false;
 		}
 
 	}
@@ -209,23 +221,29 @@ public class GrafoNoDirigido<Key extends Comparable<Key>, Value>
 	public Iterable<Key> adj(Key idVertix)
 	{
 		Vertice<Key, Value> buscado =  vertices.get(idVertix);
-		
+
 		Iterator<Arco<Key>> ady = buscado.darAdyacentes().iterator();
 		Queue<Key> aRetornar = new Queue<Key>();
-		
+
 		while(ady.hasNext())
 		{
 			Arco<Key> actual = ady.next();
 			aRetornar.enqueue(actual.idVertexFin);
 		}
-		
+
 		return aRetornar;
 
 	}
 
 	public void uncheck()
 	{
-
+		Iterator<Key> llaves = vertices.keys();
+		
+		while(llaves.hasNext())
+		{
+			Key llaveActual = llaves.next();
+			vertices.get(llaveActual).desmarcar();
+		}
 	}
 
 	public void dfs(Key s)
