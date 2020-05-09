@@ -27,7 +27,7 @@ public class GrafoNoDirigido<Key extends Comparable<Key>, Value>
 		{
 			costoArco  = pCosto;
 		}
-		
+
 		public Key darInicio()
 		{
 			return idVertexInicio;
@@ -37,7 +37,7 @@ public class GrafoNoDirigido<Key extends Comparable<Key>, Value>
 		{
 			return idVertexFin;
 		}
-		
+
 		public double darCosto()
 		{
 			return costoArco;
@@ -129,14 +129,18 @@ public class GrafoNoDirigido<Key extends Comparable<Key>, Value>
 
 	public void addEdge(Key VI, Key VF, double cost)
 	{
-		Vertice<Key, Value> inicio = vertices.get(VI);
-		Vertice<Key, Value> fin = vertices.get(VF);
+		if(getInfoVertex(VI) != null && getInfoVertex(VF) != null)
+		{
+			Vertice<Key, Value> inicio = vertices.get(VI);
+			Vertice<Key, Value> fin = vertices.get(VF);
 
-		Arco<Key> arco =new Arco<Key>(VI, VF, cost);
 
-		inicio.agregarArco(arco);
-		fin.agregarArco(arco);
-		nArcos++;
+			Arco<Key> arco =new Arco<Key>(VI, VF, cost);
+
+			inicio.agregarArco(arco);
+			fin.agregarArco(arco);
+			nArcos++;
+		}
 	}
 
 	public Value getInfoVertex(Key id)
@@ -252,7 +256,7 @@ public class GrafoNoDirigido<Key extends Comparable<Key>, Value>
 	public void uncheck()
 	{
 		Iterator<Key> llaves = vertices.keys();
-		
+
 		while(llaves.hasNext())
 		{
 			Key llaveActual = llaves.next();

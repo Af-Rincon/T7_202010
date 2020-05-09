@@ -32,7 +32,7 @@ public class Modelo {
 
 	public static String RUTA_VERTICES = "./data/bogota_vertices.txt";
 
-	public static String RUTA_ARCOS = "/.data/bogota_arcos.txt";
+	public static String RUTA_ARCOS = "./data/bogota_arcos.txt";
 
 	private static final int EARTH_RADIUS = 6371;
 
@@ -43,7 +43,7 @@ public class Modelo {
 	private Queue<EstacionPolicia> estaciones;
 
 	private GrafoNoDirigido<Integer, LatitudYLongitud> grafo;
-	
+
 	private GrafoNoDirigido<Integer, LatitudYLongitud> grafoArchivo;
 
 	private static Comparable[] aux;
@@ -61,9 +61,9 @@ public class Modelo {
 	public Modelo()
 	{
 		estaciones = new Queue<EstacionPolicia>();
-		
-		grafo = new GrafoNoDirigido<Integer, LatitudYLongitud>(500);
-		grafoArchivo = new GrafoNoDirigido<Integer, LatitudYLongitud>(500);
+
+		grafo = new GrafoNoDirigido<Integer, LatitudYLongitud>();
+		grafoArchivo = new GrafoNoDirigido<Integer, LatitudYLongitud>();
 
 	}
 
@@ -129,6 +129,7 @@ public class Modelo {
 			int objectID = Integer.parseInt(info[0]);
 			double longitud = Double.parseDouble(info[1]);
 			double latitud = Double.parseDouble(info[2]);
+
 			LatitudYLongitud ubicacion = new LatitudYLongitud(latitud, longitud);
 
 			grafo.addVertex(objectID, ubicacion);
@@ -198,26 +199,31 @@ public class Modelo {
 		while(i < grafo.V())
 		{
 			JsonObject vertice = new JsonObject(); 
+
 			vertice.addProperty("OBJECTID", i);
+
 			vertice.addProperty("LONGITUD", grafo.getInfoVertex(i).darLongitud());
 			vertice.addProperty("LATITUD", grafo.getInfoVertex(i).darLatitud());
-
 			Iterator<GrafoNoDirigido<Integer, LatitudYLongitud>.Arco<Integer>> arcos = grafo.getVertex(i).darAdyacentes().iterator();
 			JsonArray listaArcos = new JsonArray();
 
+
 			while(arcos.hasNext())
 			{
-				JsonObject arco = new JsonObject(); 
 				GrafoNoDirigido<Integer, LatitudYLongitud>.Arco<Integer> a = arcos.next();
-				arco.addProperty("IDVERTEX_FIN", a.darFin());
-				arco.addProperty("COSTO", a.darCosto());
+				JsonObject arcoTemp = new JsonObject(); 
+				arcoTemp.addProperty("IDVERTEX_FIN", a.darFin());
+				arcoTemp.addProperty("COSTO", a.darCosto());
 
-				listaArcos.add(arco);
+				listaArcos.add(arcoTemp);
 			}
 
 			vertice.add("arcos", listaArcos);
 			listaVertices.add(vertice);
+			i++;
 		}
+
+
 
 		g.add("features", listaVertices);
 		fw.write(g.toString());
@@ -228,6 +234,7 @@ public class Modelo {
 
 	}
 
+	
 	public void leerJSON(String pRutaArchivo) 
 	{
 		JsonReader reader;
@@ -245,19 +252,20 @@ public class Modelo {
 				int objectID = e.getAsJsonObject().get("OBJECTID").getAsInt();
 				double longitud = e.getAsJsonObject().get("LONGITUD").getAsDouble();
 				double latitud = e.getAsJsonObject().get("LATITUD").getAsDouble();
-				
+
 				LatitudYLongitud ubicacion = new LatitudYLongitud(latitud, longitud);
 				grafoArchivo.addVertex(objectID, ubicacion);
-				
+
 				JsonArray arcos = e.getAsJsonObject().get("arcos").getAsJsonArray();
 				for(JsonElement a : arcos)
 				{
 					int idVertexFin = a.getAsJsonObject().get("IDVERTEX_FIN").getAsInt();
 					double costo = a.getAsJsonObject().get("COSTO").getAsDouble();
+					
 					grafoArchivo.addEdge(objectID, idVertexFin, costo);
 				}
 			}
-			
+
 		}
 
 		catch (FileNotFoundException e) {
@@ -291,6 +299,21 @@ public class Modelo {
 		return estaciones.darTamano();
 	}
 
+	public int darNumeroVertices()
+	{
+		return grafo.V();
+	}
+
+	public int darNumeroArcos()
+	{
+		return grafo.E();
+	}
+
+	public GrafoNoDirigido<Integer, LatitudYLongitud> darGrafoCreado()
+	{
+		return grafoArchivo;
+	}
+
 
 	//Distancia haversine (tomado de: https://github.com/jasonwinn/haversine/blob/master/Haversine.java)
 
@@ -312,62 +335,6 @@ public class Modelo {
 	public static double haversin(double val) 
 	{
 		return Math.pow(Math.sin(val / 2), 2);
-	}
-
-
-
-
-	// ORDENAMIENTOS
-
-	//Merge
-
-	public static void sort(Comparable[] a) {
-		aux = new Comparable[a.length];
-		sort(a, 0, a.length - 1); 
-	}
-
-	private static void sort(Comparable[] a, int lo, int hi) {
-		if (hi <= lo) return; 
-		int mid = lo + (hi - lo)/2;
-		sort(a, lo, mid);
-
-		sort(a, mid+1, hi);
-
-		merge(a, lo, mid, hi);
-	}
-
-	public static void merge(Comparable[] a, int lo, int mid, int hi)
-	{
-
-		int i = lo, j = mid+1;
-		for (int k = lo; k <= hi; k++)
-
-			aux[k] = a[k];
-		for (int k = lo; k <= hi; k++)
-
-			if (i > mid) a[k] = aux[j++];
-			else if (j > hi ) a[k] = aux[i++];
-			else if (less(aux[j], aux[i])) a[k] = aux[j++];
-			else a[k] = aux[i++];
-	}
-
-	public static  boolean less(Comparable a, Comparable b)
-	{
-		return a.compareTo(b)<0;
-	}
-
-
-	public void  shuffle(Comparendo[] total)
-	{
-		Random rnd = ThreadLocalRandom.current();
-		for (int i = total.length - 1; i > 0; i--)
-		{
-			int index = rnd.nextInt(i + 1);
-			// Simple swap
-			Comparendo a = total[index];
-			total[index] = total[i];
-			total[i] = a;
-		}
 	}
 
 }

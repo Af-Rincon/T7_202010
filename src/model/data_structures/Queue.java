@@ -88,13 +88,11 @@ public class Queue<T> implements Iterable<T> {
 		}
 		@Override
 		public boolean hasNext() {
-			// TODO Auto-generated method stub
 			return (actual!=null);
 		}
 
 		@Override
 		public T next() {
-			// TODO Auto-generated method stub
 			if(!hasNext())
 			{
 				throw new NoSuchElementException();
