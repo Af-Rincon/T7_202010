@@ -1,17 +1,26 @@
 package model.logic;
 
+import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
-import com.google.gson.*;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
 
 import model.data_structures.*;
+import model.data_structures.GrafoNoDirigido.Arco;
 
 /**
  * Definicion del modelo del mundo
@@ -19,20 +28,30 @@ import model.data_structures.*;
  */
 public class Modelo {
 
+	public static String ARCHIVO_ESTACIONES = "./data/estacionpolicia.geojson";
 
+	public static String RUTA_VERTICES = "./data/bogota_vertices.txt";
 
-	public static String PATH = "./data/Comparendos_DEI_2018_Bogota_D.C_small.geojson";
+	public static String RUTA_ARCOS = "/.data/bogota_arcos.txt";
+
+	private static final int EARTH_RADIUS = 6371;
+
 	/**
 	 * Atributos del modelo del mundo
 	 */
 
-	private Queue<Comparendo> datos;
-	
-	private LinearProbingHash<String, Comparendo> hashLP;
+	private Queue<EstacionPolicia> estaciones;
 
-	private SeparateChainingHash<String, Comparendo> hashSC;
+	private GrafoNoDirigido<Integer, LatitudYLongitud> grafo;
+	
+	private GrafoNoDirigido<Integer, LatitudYLongitud> grafoArchivo;
 
 	private static Comparable[] aux;
+
+
+	// -----------------------------------------------------------------
+	// Constructor
+	// -----------------------------------------------------------------
 
 
 	/**
@@ -41,47 +60,38 @@ public class Modelo {
 
 	public Modelo()
 	{
-		datos = new Queue<Comparendo>();
-		hashLP = new LinearProbingHash<String, Comparendo>(7);
-		hashSC = new SeparateChainingHash<String, Comparendo>(7);
+		estaciones = new Queue<EstacionPolicia>();
+		
+		grafo = new GrafoNoDirigido<Integer, LatitudYLongitud>(500);
+		grafoArchivo = new GrafoNoDirigido<Integer, LatitudYLongitud>(500);
+
 	}
 
 
-	//Iniciales
-	
-	public void cargarDatos() 
 
+	// -----------------------------------------------------------------
+	// Métodos de carga
+	// -----------------------------------------------------------------
+
+
+	public void cargarEstaciones()
 	{
-		hashLP = new LinearProbingHash<String, Comparendo>(7);
-		hashSC = new SeparateChainingHash<String, Comparendo>(7);
-
 		JsonReader reader;
 
-		try {
-
-			int mayorID  = 0;
-			reader = new JsonReader(new FileReader( PATH));
+		try
+		{
+			reader = new JsonReader(new FileReader(ARCHIVO_ESTACIONES));
 			JsonParser jsonp = new JsonParser();
 
 			JsonElement elem = jsonp.parse(reader);
 			JsonArray e2 = elem.getAsJsonObject().get("features").getAsJsonArray();
 
-
-			SimpleDateFormat parser=new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-
-			for(JsonElement e: e2) {
-				int OBJECTID = e.getAsJsonObject().get("properties").getAsJsonObject().get("OBJECTID").getAsInt();
+			for(JsonElement e: e2)
+			{
 
 
-				String FECHA_HORA = e.getAsJsonObject().get("properties").getAsJsonObject().get("FECHA_HORA").getAsString();
-
-				String MEDIO_DETE = e.getAsJsonObject().get("properties").getAsJsonObject().get("MEDIO_DETECCION").getAsString();
-				String CLASE_VEHI = e.getAsJsonObject().get("properties").getAsJsonObject().get("CLASE_VEHICULO").getAsString();
-				String TIPO_SERVI = e.getAsJsonObject().get("properties").getAsJsonObject().get("TIPO_SERVICIO").getAsString();
-				String INFRACCION = e.getAsJsonObject().get("properties").getAsJsonObject().get("INFRACCION").getAsString();
-				String DES_INFRAC = e.getAsJsonObject().get("properties").getAsJsonObject().get("DES_INFRACCION").getAsString();	
-				String LOCALIDAD = e.getAsJsonObject().get("properties").getAsJsonObject().get("LOCALIDAD").getAsString();
-				String MUNICIPIO = e.getAsJsonObject().get("properties").getAsJsonObject().get("MUNICIPIO").getAsString();
+				int objectID = e.getAsJsonObject().get("properties").getAsJsonObject().get("OBJECTID").getAsInt();
+				String nombre = e.getAsJsonObject().get("properties").getAsJsonObject().get("EPONOMBRE").getAsString();
 
 				double longitud = e.getAsJsonObject().get("geometry").getAsJsonObject().get("coordinates").getAsJsonArray()
 						.get(0).getAsDouble();
@@ -89,80 +99,178 @@ public class Modelo {
 				double latitud = e.getAsJsonObject().get("geometry").getAsJsonObject().get("coordinates").getAsJsonArray()
 						.get(1).getAsDouble();
 
-				Comparendo c = new Comparendo(OBJECTID, FECHA_HORA, MEDIO_DETE, CLASE_VEHI, TIPO_SERVI, INFRACCION,DES_INFRAC, LOCALIDAD, longitud, latitud, MUNICIPIO);
-				String key = c.darSimpleDate()+c.darClaseVehiculo()+c.darInfraccion();
-				
-				datos.enqueue(c);
-				hashLP.putInSet(key, c);
-				hashSC.putInSet(key, c);
-
+				EstacionPolicia ep = new EstacionPolicia(nombre, objectID, latitud, longitud);
+				estaciones.enqueue(ep);
 
 			}
 
-		} 
-	
+
+		}
 
 		catch (FileNotFoundException e) {
 			System.out.println(e.getMessage());
 			e.printStackTrace();
 		}
+
+
 	}
-	
-	
 
-	public void cargarDatosSmall() 
 
+	public void cargarVertices() throws IOException
+	{
+		FileReader fr = new FileReader(new File(RUTA_VERTICES));
+		BufferedReader br = new BufferedReader(fr);
+
+		String l = br.readLine();
+
+		while(l != null)
+		{
+			String[] info = l.split(",");
+			int objectID = Integer.parseInt(info[0]);
+			double longitud = Double.parseDouble(info[1]);
+			double latitud = Double.parseDouble(info[2]);
+			LatitudYLongitud ubicacion = new LatitudYLongitud(latitud, longitud);
+
+			grafo.addVertex(objectID, ubicacion);
+
+			l= br.readLine();
+
+		}
+
+		br.close();
+		fr.close();
+	}
+
+
+	public void cargarArcos() throws IOException
+	{
+		FileReader fr = new FileReader(new File(RUTA_ARCOS));
+		BufferedReader br = new BufferedReader(fr);
+
+		String l = br.readLine();
+
+		while(l.startsWith("#"))
+		{
+			l = br.readLine();
+		}
+		while(l != null)
+		{
+			String[] info = l.split(" ");
+			int idVerticeInicial = Integer.parseInt(info[0]);
+			double latitudInicial = grafo.getInfoVertex(idVerticeInicial).darLatitud();
+			double longitudInicial = grafo.getInfoVertex(idVerticeInicial).darLongitud();
+
+			int i = 1;
+			while(i < info.length)
+			{
+				int idVerticeFinal = Integer.parseInt(info[i]);
+				double latitudFinal= grafo.getInfoVertex(idVerticeFinal).darLatitud();
+				double longitudFinal = grafo.getInfoVertex(idVerticeFinal).darLongitud();
+
+				grafo.addEdge(idVerticeInicial, idVerticeFinal, distance(latitudInicial, longitudInicial, latitudFinal, longitudFinal));
+
+				i++;
+			}
+
+			l= br.readLine(); 
+
+		}
+
+		br.close();
+		fr.close();
+
+	}
+
+
+	// -----------------------------------------------------------------
+	// Métodos crear archivo y cargar JSON
+	// -----------------------------------------------------------------
+
+
+	public void crearJSON(String rutaArchivo) throws IOException
+	{
+		FileWriter fw = new FileWriter(rutaArchivo);
+
+		JsonObject g = new JsonObject();
+		JsonArray listaVertices = new JsonArray();
+
+		int i = 0;
+		while(i < grafo.V())
+		{
+			JsonObject vertice = new JsonObject(); 
+			vertice.addProperty("OBJECTID", i);
+			vertice.addProperty("LONGITUD", grafo.getInfoVertex(i).darLongitud());
+			vertice.addProperty("LATITUD", grafo.getInfoVertex(i).darLatitud());
+
+			Iterator<GrafoNoDirigido<Integer, LatitudYLongitud>.Arco<Integer>> arcos = grafo.getVertex(i).darAdyacentes().iterator();
+			JsonArray listaArcos = new JsonArray();
+
+			while(arcos.hasNext())
+			{
+				JsonObject arco = new JsonObject(); 
+				GrafoNoDirigido<Integer, LatitudYLongitud>.Arco<Integer> a = arcos.next();
+				arco.addProperty("IDVERTEX_FIN", a.darFin());
+				arco.addProperty("COSTO", a.darCosto());
+
+				listaArcos.add(arco);
+			}
+
+			vertice.add("arcos", listaArcos);
+			listaVertices.add(vertice);
+		}
+
+		g.add("features", listaVertices);
+		fw.write(g.toString());
+
+
+		fw.flush();
+		fw.close();
+
+	}
+
+	public void leerJSON(String pRutaArchivo) 
 	{
 		JsonReader reader;
 
-		try {
-
-			int mayorID  = 0;
-			reader = new JsonReader(new FileReader("./data/comparendos_dei_2018_small.geojson"));
+		try
+		{
+			reader = new JsonReader(new FileReader(pRutaArchivo));	
 			JsonParser jsonp = new JsonParser();
 
 			JsonElement elem = jsonp.parse(reader);
 			JsonArray e2 = elem.getAsJsonObject().get("features").getAsJsonArray();
 
-
-			SimpleDateFormat parser=new SimpleDateFormat("yyyy/MM/dd");
-
-			for(JsonElement e: e2) {
-				int OBJECTID = e.getAsJsonObject().get("properties").getAsJsonObject().get("OBJECTID").getAsInt();
-
-				String FECHA_HORA = e.getAsJsonObject().get("properties").getAsJsonObject().get("FECHA_HORA").getAsString();	
+			for(JsonElement e: e2)
+			{
+				int objectID = e.getAsJsonObject().get("OBJECTID").getAsInt();
+				double longitud = e.getAsJsonObject().get("LONGITUD").getAsDouble();
+				double latitud = e.getAsJsonObject().get("LATITUD").getAsDouble();
 				
-
-				String MEDIO_DETE = e.getAsJsonObject().get("properties").getAsJsonObject().get("MEDIO_DETE").getAsString();
-				String CLASE_VEHI = e.getAsJsonObject().get("properties").getAsJsonObject().get("CLASE_VEHI").getAsString();
-				String TIPO_SERVI = e.getAsJsonObject().get("properties").getAsJsonObject().get("TIPO_SERVI").getAsString();
-				String INFRACCION = e.getAsJsonObject().get("properties").getAsJsonObject().get("INFRACCION").getAsString();
-				String DES_INFRAC = e.getAsJsonObject().get("properties").getAsJsonObject().get("DES_INFRAC").getAsString();	
-				String LOCALIDAD = e.getAsJsonObject().get("properties").getAsJsonObject().get("LOCALIDAD").getAsString();
-
-				double longitud = e.getAsJsonObject().get("geometry").getAsJsonObject().get("coordinates").getAsJsonArray()
-						.get(0).getAsDouble();
-
-				double latitud = e.getAsJsonObject().get("geometry").getAsJsonObject().get("coordinates").getAsJsonArray()
-						.get(1).getAsDouble();
-
-				Comparendo c = new Comparendo(OBJECTID, FECHA_HORA, MEDIO_DETE, CLASE_VEHI, TIPO_SERVI, INFRACCION,DES_INFRAC, LOCALIDAD, longitud, latitud,"");
-				String key = c.darSimpleDate()+c.darClaseVehiculo()+c.darInfraccion();
+				LatitudYLongitud ubicacion = new LatitudYLongitud(latitud, longitud);
+				grafoArchivo.addVertex(objectID, ubicacion);
 				
-				datos.enqueue(c);
-				hashLP.putInSet(key, c);
-				hashSC.putInSet(key, c);
-				
-
+				JsonArray arcos = e.getAsJsonObject().get("arcos").getAsJsonArray();
+				for(JsonElement a : arcos)
+				{
+					int idVertexFin = a.getAsJsonObject().get("IDVERTEX_FIN").getAsInt();
+					double costo = a.getAsJsonObject().get("COSTO").getAsDouble();
+					grafoArchivo.addEdge(objectID, idVertexFin, costo);
+				}
 			}
+			
+		}
 
-		} catch (FileNotFoundException e) {
+		catch (FileNotFoundException e) {
 			System.out.println(e.getMessage());
 			e.printStackTrace();
 		}
 
-
 	}
+
+	// -----------------------------------------------------------------
+	// Métodos básicos
+	// -----------------------------------------------------------------
+
 
 	public Comparendo[] copiarArreglo(Queue<Comparendo> arreglo)
 	{
@@ -176,239 +284,35 @@ public class Modelo {
 		return comparendos;
 	}
 
-	
-	public Comparendo[] copiarDatos()
-	{
-		Comparendo[] comparendos = new Comparendo[datos.darTamano()];
-		int i = 0;
-		for(Comparendo e : datos)
-		{
-			comparendos[i] = e;
-			i++;
-		}
-		return comparendos;
-	}
 
-	
-	public Queue<Comparendo> cargarMuestra(int N)
-	{
-		Queue<Comparendo> aRetornar = new Queue<Comparendo>();
-		Comparendo[] copia = copiarDatos();
-		shuffle(copia);
 
-		for(int i = 1; i <= N; i++ )
-		{
-			aRetornar.enqueue(copia[i]);
-		}
-
-		return aRetornar;
-	}
-
-	
 	public int darTamano()
 	{
-		return datos.darTamano();
+		return estaciones.darTamano();
 	}
 
-	
-	public Comparendo darPrimeroCola()
+
+	//Distancia haversine (tomado de: https://github.com/jasonwinn/haversine/blob/master/Haversine.java)
+
+	public static double distance(double startLat, double startLong, double endLat, double endLong) 
 	{
-		return datos.darPrimerElemento();
+
+		double dLat  = Math.toRadians((endLat - startLat));
+		double dLong = Math.toRadians((endLong - startLong));
+
+		startLat = Math.toRadians(startLat);
+		endLat   = Math.toRadians(endLat);
+
+		double a = haversin(dLat) + Math.cos(startLat) * Math.cos(endLat) * haversin(dLong);
+		double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+		return EARTH_RADIUS * c; // <-- d
 	}
 
-	public Comparendo darUltimoCola()
+	public static double haversin(double val) 
 	{
-		return datos.darUltimoElemento();
+		return Math.pow(Math.sin(val / 2), 2);
 	}
-
-	
-	
-	// Otros 
-	public int darTamanoLinearProbing()
-	{
-		return hashLP.darTamano();
-	}
-
-
-	public int darTamanoSeparateChaining()
-	{
-		return hashSC.darTamano();
-	}
-
-
-	public int darTotalDuplasLP()
-	{
-		return hashLP.darTotalDuplas();
-	}
-
-
-	public int darTotalDuplasSC()
-	{
-		return hashSC.darTotalDuplas();
-	}
-
-	public int darTotalRehashesLP()
-	{
-		return hashLP.darTotalRehashes();
-	}
-
-	public int darTotalRehashesSC()
-	{
-		return hashSC.darTotalRehashes();
-	}
-
-
-	//Requerimiento 1
-
-	public Comparable[] busquedaLP(String pFecha, String pClase, String pInfraccion)
-	{
-		String llave = pFecha+pClase+pInfraccion;
-
-		if(!hashLP.contains(llave))
-		{
-			return null;
-		}
-
-		Comparable[] aRetornar = copiarArreglo(hashLP.getSet(llave));
-		sort(aRetornar);
-
-		return aRetornar;
-	}
-
-
-
-	//Requerimiento 2 
-
-
-	public Comparable[] busquedaSC(String pFecha, String pClase, String pInfraccion)
-	{
-		String llave = pFecha+pClase+pInfraccion;
-
-		if(!hashSC.contains(llave))
-		{
-			return null;
-		}
-
-		Comparable[] aRetornar = copiarArreglo(hashSC.getSet(llave));
-		sort(aRetornar);
-		return aRetornar;
-	}
-
-
-
-// Requerimiento 3
-	
-	public String pruebaDesempeno()
-	{
-		long inicio = 0;
-		long fin = 0;
-		long duracion = 0;
-		
-		Queue<Comparendo> muestra = cargarMuestra(8000);
-		Comparendo[] muestraFinal = new Comparendo[10000] ;
-		long[] tiemposLP = new long[10000];
-		long[] tiemposSC = new long[10000];
-		
-		
-		for(int i = 0; i < muestraFinal.length; i++ )
-		{
-			if(i < 8000)
-			{
-				Node<Comparendo> actual = muestra.darPrimerNodo();
-				muestraFinal[i] = actual.darElemento();
-				actual = actual.darSiguiente();
-			}
-			
-			else
-			{
-				//TODO Crear comparendo aleatorio
-				Random generator = new Random();
-				int x = generator.nextInt(9);
-				String date = ""+2019+"/"+x+"/"+x;
-				Comparendo nuevo = new Comparendo(22222, date,"aaaaa" , "bicicleta", "particular", "C02", "colision", "Teusaquillo",74.08775699999995, 4.616270400000076, "Bogot�");
-				muestraFinal[i] = nuevo;
-
-			}
-		}
-		
-		
-		//Linear Probing
-		long minimoLP = 1000000000;
-		long maximoLP = 0;
-		long suma=0;
-		
-		for (int i = 0; i < tiemposLP.length; i++) 
-		{
-			inicio = System.currentTimeMillis();
-			String llave = muestraFinal[i].darSimpleDate()+muestraFinal[i].darClaseVehiculo()+muestraFinal[i].darInfraccion();
-			Queue<Comparendo> buscado = hashLP.getSet(llave);
-			fin = System.currentTimeMillis();
-			duracion = fin-inicio;
-			tiemposLP[i]=duracion;
-			
-			if(duracion>maximoLP)
-			{
-				maximoLP = duracion;
-			}
-			
-			else if(duracion<minimoLP)
-			{
-				duracion=minimoLP;
-			}
-			
-			suma+=duracion;
-		}
-		
-		long promedioLP = suma/tiemposLP.length;
-		
-		
-		//Separate Chaining
-		
-		long minimoSC = 1000000000;
-		long maximoSC = 0;
-		long sumaSC=0;
-		
-		for (int i = 0; i < tiemposLP.length; i++) 
-		{
-			inicio = System.currentTimeMillis();
-			String llave = muestraFinal[i].darSimpleDate()+muestraFinal[i].darClaseVehiculo()+muestraFinal[i].darInfraccion();
-			Queue<Comparendo> buscado = hashSC.getSet(llave);
-			fin = System.currentTimeMillis();
-			duracion = fin-inicio;
-			tiemposLP[i]=duracion;
-			
-			if(duracion>maximoLP)
-			{
-				maximoLP = duracion;
-			}
-			
-			else if(duracion<minimoLP)
-			{
-				duracion=minimoLP;
-			}
-			
-			sumaSC+=duracion;
-		}
-		
-		
-		long promedioSC = suma/tiemposSC.length;
-		
-		
-		//Tabla
-		String respuesta =  "Tiempo minimo get(...)" + "   LP: " + minimoLP + "   SC: " + minimoSC + 
-				"\n Tiempo maximo get(...)" + "   LP: " + maximoLP + "   SC: " + maximoSC + 
-				"\n Tiempo promedio get(...)" + "   LP: " + promedioLP + "   SC: " + promedioSC; 
-		
-		return respuesta;
-		
-	}
-
-
-
-
-
-
-
 
 
 
@@ -452,7 +356,7 @@ public class Modelo {
 		return a.compareTo(b)<0;
 	}
 
-	
+
 	public void  shuffle(Comparendo[] total)
 	{
 		Random rnd = ThreadLocalRandom.current();

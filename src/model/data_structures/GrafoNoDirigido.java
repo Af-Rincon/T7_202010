@@ -6,7 +6,7 @@ public class GrafoNoDirigido<Key extends Comparable<Key>, Value>
 {
 
 	@SuppressWarnings("hiding")
-	private class Arco<Key>
+	public class Arco<Key>
 	{
 		private Key idVertexInicio;
 
@@ -27,12 +27,26 @@ public class GrafoNoDirigido<Key extends Comparable<Key>, Value>
 		{
 			costoArco  = pCosto;
 		}
+		
+		public Key darInicio()
+		{
+			return idVertexInicio;
+		}
 
+		public Key darFin()
+		{
+			return idVertexFin;
+		}
+		
+		public double darCosto()
+		{
+			return costoArco;
+		}
 
 	}
 
 	@SuppressWarnings("hiding")
-	private class Vertice<Key, Value>
+	public class Vertice<Key, Value>
 	{
 		private Key idVertex;
 
