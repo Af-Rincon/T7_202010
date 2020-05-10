@@ -315,6 +315,18 @@ public class GrafoNoDirigido<Key extends Comparable<Key>, Value>
 
 	public Iterable<Key> getCC(Key idVertix)
 	{
-		return null;
+		Queue<Key> resp  = new Queue<Key>();
+		uncheck();
+		dfs(idVertix);
+		Iterator<Key> llaves = vertices.keys();
+		while(llaves.hasNext())
+		{
+			Key actual = llaves.next();
+			if(vertices.get(actual).darMarked())
+			{
+				resp.enqueue(actual);
+			}
+		}
+		return resp;
 	}
 }

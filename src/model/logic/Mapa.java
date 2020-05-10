@@ -82,8 +82,9 @@ public class Mapa extends MapView
 
 					//Dibujar todos los vertices
 					Iterator<Integer> v = vertices.keys();
+					int i = 0;
 
-					while(v.hasNext())
+					while(v.hasNext()&&i<20000)
 					{
 						int id = v.next();
 						double latitudActual = grafo.getInfoVertex(id).darLatitud();
@@ -117,7 +118,7 @@ public class Mapa extends MapView
 						}
 
 
-
+						i++;
 
 					}
 
@@ -138,14 +139,13 @@ public class Mapa extends MapView
 							double lat = estacionActual.darLatitud();
 							double lon = estacionActual.darLongitud();
 
-							if(lat >= MIN_LATITUD && lat <= MAX_LATITUD && lon >= MIN_LONGITUD && lon <= MAX_LONGITUD)
-							{
+							
 								Circle estacion = new Circle(mapa);
 								estacion.setOptions(circulosPolicia);
 								estacion.setCenter(new LatLng(lat, lon));
 
 
-							}
+							
 
 						}
 					}
