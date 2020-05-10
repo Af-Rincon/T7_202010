@@ -279,12 +279,38 @@ public class GrafoNoDirigido<Key extends Comparable<Key>, Value>
 
 	public void dfs(Key s)
 	{
-		vertices.get(s);
+		Vertice<Key,Value> v =  vertices.get(s);
+		v.marcar();
+		vertices.put(s, v);
+		for(Key e: adj(s))
+		{
+			Vertice<Key,Value> actual = vertices.get(e);
+			if(!actual.darMarked())
+			{
+				dfs(e);
+			}
+			
+		}
 	}
 
 	public int cc()
 	{
-		return 0;
+		uncheck();
+		Iterator<Key> llaves = vertices.keys();
+		int cc  = 0;
+
+		while(llaves.hasNext())
+		{
+			Key actual = llaves.next();
+			Vertice<Key,Value> v = vertices.get(actual);
+			if(!v.darMarked()){
+				dfs(actual);
+				cc++;
+			}
+		}
+		
+		return cc;
+
 	}
 
 	public Iterable<Key> getCC(Key idVertix)
